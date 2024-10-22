@@ -7,6 +7,8 @@ import { onAuthStateChanged } from "firebase/auth";
 
 const Splash = () => {
   const navigation = useNavigation();
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -16,6 +18,7 @@ const Splash = () => {
           navigation.navigate("Register");
         }, 3000);
       }
+      setLoading(false);
     });
     return unsubscribe;
   }, []);
