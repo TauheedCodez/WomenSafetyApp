@@ -1,5 +1,5 @@
 # Women Safety App using react-native expo 
-## Steps how to run the app on your machine :
+## Steps to run the app on your machine :
 - install nodejs
 - run this command on cmd :
 ```js
@@ -9,6 +9,7 @@ npm install -g expo cli
 ```js
 npx expo start
 ```
+- install the necessary packages if required 
 
 
 https://github.com/user-attachments/assets/17ff6acc-623e-4019-a6d2-8b7387875cda
