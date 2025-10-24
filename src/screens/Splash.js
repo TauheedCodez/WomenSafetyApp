@@ -1,24 +1,21 @@
 import { View, Text, StyleSheet, Image } from "react-native";
 import React from "react";
 import { useNavigation } from "@react-navigation/native";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { auth } from "../../firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
 const Splash = () => {
   const navigation = useNavigation();
-  const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        navigation.navigate("TabNavigator");
+        navigation.replace("TabNavigator");
       } else {
         setTimeout(() => {
-          navigation.navigate("Register");
+          navigation.replace("Register");
         }, 3000);
       }
-      setLoading(false);
     });
     return unsubscribe;
   }, []);

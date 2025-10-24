@@ -3,82 +3,133 @@ import {
   Text,
   View,
   TouchableOpacity,
-  Button,
   Alert,
   Image,
+  ActivityIndicator,
 } from "react-native";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigation } from "@react-navigation/native";
-import { useState, useEffect } from "react";
 import * as Location from "expo-location";
 import * as SMS from "expo-sms";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { db } from "../../firebase"; // adjust path if needed
+import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 const Home = () => {
   const navigation = useNavigation();
-  const onLocate = () => {
-    navigation.navigate("Map");
-  };
-  const onContact = () => {
-    navigation.navigate("Contacts");
-  };
-
-  const [location, setLocation] = useState(null);
+  const [location, setLocation] = useState(null); // latest location
   const [contacts, setContacts] = useState([]);
+  const [loadingLocation, setLoadingLocation] = useState(true);
 
-  // Load contacts and request location
+  const onLocate = () => navigation.navigate("Map");
+  const onContact = () => navigation.navigate("Contacts");
+
   useEffect(() => {
-    const loadContactsAndLocation = async () => {
-      // Request location permissions
-      let { status } = await Location.requestForegroundPermissionsAsync();
+    const auth = getAuth();
+    const user = auth.currentUser;
+    if (!user) return;
+
+    let locationSubscription;
+
+    const startLocationWatch = async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         Alert.alert("Permission to access location was denied");
+        setLoadingLocation(false);
         return;
       }
 
-      // Get user's location
-      let loc = await Location.getCurrentPositionAsync({});
-      setLocation(loc);
-
-      // Fetch contacts from AsyncStorage
-      const storedContacts = await AsyncStorage.getItem("contacts");
-      if (storedContacts) {
-        setContacts(JSON.parse(storedContacts));
-      } else {
-        Alert.alert("No contacts available to send the Alert");
+      // Get instant last known location first
+      const lastLocation = await Location.getLastKnownPositionAsync();
+      if (lastLocation) {
+        setLocation(lastLocation);
+        console.log("Initial location:", lastLocation.coords.latitude, lastLocation.coords.longitude);
       }
+      setLoadingLocation(false);
+
+      // Watch for real-time updates
+      locationSubscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.Highest,
+          distanceInterval: 1, // every meter
+          timeInterval: 1000, // every second
+        },
+        (loc) => {
+          setLocation(loc);
+          console.log("Updated location:", loc.coords.latitude, loc.coords.longitude);
+        }
+      );
     };
 
-    loadContactsAndLocation();
+    startLocationWatch();
+
+    // --- FIRESTORE CONTACTS LISTENER ---
+    const contactsRef = collection(db, "contacts");
+    const q = query(contactsRef, where("userId", "==", user.uid));
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const updatedContacts = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setContacts(updatedContacts);
+      },
+      (error) => {
+        if (error.code !== "permission-denied") {
+          console.error("Firestore listener error:", error);
+        }
+      }
+    );
+
+    const unsubscribeAuth = auth.onAuthStateChanged((currentUser) => {
+      if (!currentUser) {
+        unsubscribe();
+        setContacts([]);
+      }
+    });
+
+    return () => {
+      if (locationSubscription) locationSubscription.remove();
+      unsubscribe();
+      unsubscribeAuth();
+    };
   }, []);
 
-  // Function to send Alert message
+  // SOS Alert Function
   const sendAlert = async () => {
     if (!location) {
       Alert.alert("Location not available");
       return;
     }
 
-    const message = `SOS! I need help. My current location is: 
-    https://www.google.com/maps?q=${location.coords.latitude},${location.coords.longitude}`;
+    if (contacts.length === 0) {
+      Alert.alert("No contacts available to send the alert");
+      return;
+    }
+
+    const message = `🚨 SOS! I need help. My current location is:
+https://www.google.com/maps?q=${location.coords.latitude},${location.coords.longitude}`;
 
     const isAvailable = await SMS.isAvailableAsync();
-    if (isAvailable) {
-      const numbers = contacts.map((contact) => contact.number);
+    if (!isAvailable) {
+      Alert.alert("SMS service not available on this device");
+      return;
+    }
 
-      if (numbers.length > 0) {
-        await SMS.sendSMSAsync(
-          numbers, // List of contact numbers
-          message
-        );
-        Alert.alert("SOS alert is Sent");
-      } else {
-        Alert.alert("No contacts available to send the Alert");
-      }
-    } else {
-      Alert.alert("SMS service is not available on this device");
+    const numbers = contacts.map((contact) => contact.number);
+    try {
+      await SMS.sendSMSAsync(numbers, message);
+      console.log("SOS alert sent successfully!");
+    } catch (error) {
+      console.log("Error sending SMS:", error.message);
     }
   };
+
+  if (loadingLocation) {
+    return <ActivityIndicator size="large" style={{ flex: 1 }} />;
+  }
 
   return (
     <View style={styles.container}>
@@ -89,6 +140,7 @@ const Home = () => {
         />
         <Text style={styles.textColor}>Get Location</Text>
       </TouchableOpacity>
+
       <TouchableOpacity onPress={onContact} style={styles.Icons}>
         <Image
           style={styles.imageLocate}
@@ -96,6 +148,7 @@ const Home = () => {
         />
         <Text style={styles.textColor}>Contacts</Text>
       </TouchableOpacity>
+
       <TouchableOpacity onPress={sendAlert} style={styles.icon}>
         <Image style={styles.image} source={require("../../assets/sos.png")} />
       </TouchableOpacity>
@@ -112,15 +165,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  button: {
-    backgroundColor: "#286090",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "80%",
-    margin: 8,
-    height: 50,
-    borderRadius: 5,
-  },
   textColor: {
     color: "white",
     fontSize: 20,
@@ -129,7 +173,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "22%",
     textAlign: "center",
-    borderRadius: 5
+    borderRadius: 5,
   },
   icon: {
     alignItems: "center",
@@ -155,6 +199,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderRadius: 7,
     margin: 10,
-    borderColor: 'grey'
+    borderColor: "grey",
   },
 });

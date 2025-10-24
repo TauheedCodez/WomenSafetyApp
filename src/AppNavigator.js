@@ -7,6 +7,7 @@ import Register from './screens/Register';
 import TabNavigator from './TabNavigator';
 import Map from './screens/Map'
 import Contacts from './screens/Contacts'
+import ForgotPassword from './screens/ForgotPassword';
 
 const Stack = createStackNavigator();
 
@@ -22,6 +23,11 @@ const AppNavigator = () => {
         <Stack.Screen
           name="Register"
           component={Register}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="ForgotPassword"
+          component={ForgotPassword}
           options={{headerShown: false}}
         />
         <Stack.Screen

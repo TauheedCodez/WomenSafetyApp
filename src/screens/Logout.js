@@ -9,7 +9,7 @@ const Logout = () => {
     auth
       .signOut()
       .then(() => {
-        navigation.navigate("Register"); // Navigate back to the Register screen after logout
+        navigation.replace("Register"); // Navigate back to the Register screen after logout
       })
       .catch((error) => {
         console.error("Sign out error: ", error);

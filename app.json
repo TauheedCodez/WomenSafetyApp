@@ -1,11 +1,10 @@
 {
   "expo": {
-    "name": "Auth",
-    "displayName": "Auth",
-    "slug": "Auth",
+    "name": "WomenSafetyApp",
+    "slug": "womensafetyapp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/safety.png",
     "userInterfaceStyle": "light",
     "plugins": [
       [
@@ -16,7 +15,7 @@
       ]
     ],
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/safety.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -25,13 +24,22 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff",
-        "permissions": ["NOTIFICATIONS"]
+        "foregroundImage": "./assets/safety.png",
+        "backgroundColor": "#ffffff"
+      },
+      "permissions": [
+        "NOTIFICATIONS",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "your_apikey"
+        }
       }
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/safety.png"
     }
   }
 }
