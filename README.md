@@ -1,4 +1,7 @@
 # Women Safety App using react-native expo 
+
+🔗 **[APK link](https://github.com/TauheedCodez/WomenSafetyApp/releases/)**
+
 ## Steps to run the app on your machine :
 - install nodejs
 - run this command on cmd :
